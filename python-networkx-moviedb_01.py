@@ -6,6 +6,13 @@ import time
 import sys
 import json
 
+from algoPackage.pageRank import algo_pagerank
+from algoPackage.hits import get_hits
+from algoPackage.betweenness_centrality import algo_betweenness_centrality 
+from algoPackage.shortestPath import all_algo_shortest_path,algo_shortest_path
+from helpers.networkx_load_n_save import *
+from helpers.generalStuff import *
+
 from builtins import len
 from networkx.algorithms.coloring.greedy_coloring_with_interchange import Node
 from networkx.classes.function import get_node_attributes
@@ -14,9 +21,6 @@ from _operator import itemgetter
 from xlwt.ExcelFormulaLexer import false_pattern
 from cairosvg.helpers import distance
 
-
-def to_ms(time):
-    return ("%.3f" % time)
 
 def getNodeCount(graph):
     nodecount = 0
@@ -54,7 +58,7 @@ def export_graph_to_node_link_data(G,outputfile):
 
 
 def all_pairs_shortest_path(G):
-    actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
+    actor_list=[x for x,y in G.nodes(data=True) if y['label'] == 'ACTOR']
 #===============================================================================
 # subgraph Returns a SubGraph view of the subgraph induced on nodes.
 # The induced subgraph of the graph contains the nodes in nodes and the edges between those nodes.
@@ -68,7 +72,7 @@ def all_pairs_shortest_path(G):
     print("RUNTIME AllPairsShortestPath - " +  str(limit) + " entries - " + str(numberOfActors) + " actors : " + to_ms((time.time() - algoTime)) + "s.")
 
 def algo_betweenness_centrality(G):
-    actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
+    actor_list=[x for x,y in G.nodes(data=True) if y['label'] == 'ACTOR']
     subG = G.subgraph(actor_list)
     dict_nodes = []
     algoTime = algoTime=time.time()
@@ -82,7 +86,7 @@ def algo_betweenness_centrality(G):
 
 def algo_degree_centrality(G):
     algoTime = algoTime=time.time()
-    actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
+    actor_list=[x for x,y in G.nodes(data=True) if y['label'] == 'ACTOR']
     subG = G.subgraph(actor_list)
     dict_nodes = []
     dict_nodes = nx.degree_centrality(subG);
@@ -94,7 +98,7 @@ def algo_degree_centrality(G):
    
 
 def algo_shortest_path(G):
-    actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
+    actor_list=[x for x,y in G.nodes(data=True) if y['label'] == 'ACTOR']
 #===============================================================================
 # subgraph Returns a SubGraph view of the subgraph induced on nodes.
 # The induced subgraph of the graph contains the nodes in nodes and the edges between those nodes.
@@ -137,24 +141,29 @@ def algo_shortest_path(G):
     print("RUNTIME ShortestPath - " +  str(limit) + " entries - " + str(numberOfActors) + " actors : " + to_ms(time.time() - algoTime) + "s.")
 
 
-def algo_pagerank(G):
-    print("Calculating pagerank")
-    actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
-    subG = G.subgraph(actor_list)
-    start_time = time.time()
-    calculation = nx.pagerank(subG, alpha=0.85, weight='count', tol=1e-10)
-    end_time = time.time()
-    print("Result:")
-    for bums in dict(sorted(calculation.items(), key=lambda item: item[1])):
-        print(bums,calculation[bums])
-    print("RUNTIME PageRank: ", end_time - start_time)
+#def algo_pagerank(G):
+#   print("Calculating pagerank")
+#    actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
+#    subG = G.subgraph(actor_list)
+#   subG = G
+#   start_time = time.time()
+#   #calculation = nx.pagerank(subG, alpha=0.85, weight='count', tol=1e-10)
+#   calculation = nx.pagerank(subG, alpha=0.85)
+#   end_time = time.time()
+#   print("Result:")
+#   for bums in dict(sorted(calculation.items(), key=lambda item: item[1])):
+#       print(bums,calculation[bums])
+#   print("RUNTIME PageRank: ", end_time - start_time)
 
 
 ##### HIER GEHTS LOS ##############
-filepath='/home/pagai/graph-data/tmdb.csv'
+filepath='/home/pagai/graph-data/tmdb_fixed.csv'
 file = open(filepath, 'r')
-limit = int(sys.argv[1])
-if limit == None:
+if (len(sys.argv) < 1):
+    print("Limit set")
+    limit = int(sys.argv[1])
+else:
+    print("No limit set")
     limit = 100000
     
 
@@ -206,15 +215,15 @@ with open(filepath, 'r') as csv_file1:
 # creating nodes
     startTime= time.time()
     for actor in unique_actors:
-        G.add_node(actor, type='actor', name=str(actor))
+        G.add_node(actor, label='ACTOR', name=str(actor))
     for keyword in unique_keywords:
-        G.add_node(keyword, type='keyword', name=str(keyword))
+        G.add_node(keyword, label='KEYWORD', name=str(keyword))
     for genre in unique_genres:
-        G.add_node(genre, type='genre' , name=str(genre))
+        G.add_node(genre, label='GENRE' , name=str(genre))
     for director in unique_directors:
-        G.add_node(director, type='director' , name=str(director))
+        G.add_node(director, label='DIRECTOR' , name=str(director))
     for company in unique_companies:
-        G.add_node(company, type='production_company', name=str(company))
+        G.add_node(company, label='PRODUCTION_COMPANY', name=str(company))
 #    print("Runtime adding single nodes : " + str((time.time() - startTime)))
 
 # creating movienodes and relationships
@@ -227,7 +236,7 @@ with open(filepath, 'r') as csv_file1:
     for row in reader1:
         if linecount < limit:
             linecount = linecount + 1 
-            G.add_node(row['original_title'], type='movie', attr_dict=row)
+            G.add_node(row['original_title'], label='MOVIE', attr_dict=row)
             for actor1 in row['cast'].split("|"):
                 for actor2 in row['cast'].split("|"):
                     if actor2 != actor:
@@ -249,8 +258,32 @@ def getNodeCount(graph):
         nodecount = nodecount + 1
     return nodecount
 
+def create_graph_from_neo4j_csv(LG,filePath):
+    with open(filePath,'r') as csv_file:
+        reader = csv.DictReader(csv_file,quotechar = '"', delimiter=',')
+        for line in reader:
+            if line['_id'] != "":
+                LG.add_node(line['name'], id=line['_id'], label=line['_labels'].replace(":",""), name=line['name'])
+            else:
+                startNode=str([nodeName for nodeName,nodeAttributes in LG.nodes(data=True) if nodeAttributes['id'] == line['_start']])
+                endNode=str([nodeName for nodeName,nodeAttributes in LG.nodes(data=True) if nodeAttributes['id'] == line['_end']])
+                LG.add_edge(startNode, endNode, type=line['_type'],count=int(line['count']))
+                #LG.add_edge(line['_start'],line['_end'], type=line['_type'],count=int(line['count']))
+                #G.add_edge(line['_end'],line['_start'],type=line['_type'],cost=float(line['cost']),count=int(line['count']),dice=line['dice']) 
+    #start_time = time.time() 
+    #dict_nodes = nx.closeness_centrality(G)
+    #print("ZEIT: " + str(time.time() - start_time))
+    #print(G.nodes(data=True)) 
 
+    #for bums in dict(sorted(dict_nodes.items(), key=lambda item: item[1])):
+    #    print(bums,dict_nodes[bums],G.nodes[bums]['name'])
+         
+LG = nx.DiGraph()
+filePath='/home/pagai/graph-data/owndb01/moviedb.csv'
 
+print("STARTING LOAD FROM " + filePath)
+create_graph_from_neo4j_csv(LG, filePath)
+print("LOAD DONE")
 #### IMPORT FILE
 #start_time = time.time()
 #G = import_node_link_data_to_graph('/var/tmp/node_link_data_5000.json')
@@ -268,9 +301,34 @@ def getNodeCount(graph):
 
 #algo_shortest_path(G)
 #all_pairs_shortest_path(G)
+print(list(G.nodes.data())[1])
+print(list(LG.nodes.data())[1])
+ 
+actor_list_LG=[nodeName for nodeName,nodeAttributes in G.nodes(data=True) if nodeAttributes['label'] == 'ACTOR']
+subLG = LG.subgraph(actor_list_LG)
+
+
+actor_list_G=[x for x,y in G.nodes(data=True) if y['label'] == 'ACTOR']
+subG = G.subgraph(actor_list_G)
+print("===== #onenode ========")
+print(list(subG.nodes.data())[1])
+print(list(subLG.nodes.data())[1])
+print("===== #nodes ==========")
+print("subLG: " + str(subLG.number_of_nodes()))
+print("subG:  " + str(subG.number_of_nodes()))
+print("LG: " + str(LG.number_of_nodes()))
+print("G:  " + str(G.number_of_nodes()))
+
+#algo_pagerank(LG)
 #algo_pagerank(G)
+print("========= ALGO SUBLG")
+algo_pagerank(subLG)
+print("========= ALGO SUBG")
+algo_pagerank(subG)
+
+
 #algo_degree_centrality(G)
-algo_betweenness_centrality(G)
+#algo_betweenness_centrality(G)
 #get_hits(G)
 
 
