@@ -6,12 +6,11 @@ import time
 import sys
 import json
 
-from algoPackage.pageRank import algo_pagerank
-from algoPackage.hits import get_hits
-from algoPackage.betweenness_centrality import algo_betweenness_centrality 
-from algoPackage.shortestPath import all_algo_shortest_path,algo_shortest_path
-from helpers.networkx_load_n_save import *
+# import own helper-modules
+sys.path.append(os.path.abspath(os.path.join(os.path.realpath(__file__),"../../networkx_modules")))
 from helpers.generalStuff import *
+from helpers.networkx_load_n_save import *
+from algoPackage.pageRank import *
 
 from builtins import len
 from networkx.algorithms.coloring.greedy_coloring_with_interchange import Node
@@ -277,13 +276,14 @@ def create_graph_from_neo4j_csv(LG,filePath):
 
     #for bums in dict(sorted(dict_nodes.items(), key=lambda item: item[1])):
     #    print(bums,dict_nodes[bums],G.nodes[bums]['name'])
-         
+
+# LG is the graph loaded from the CSV.         
 LG = nx.DiGraph()
 filePath='/home/pagai/graph-data/owndb01/moviedb.csv'
-
 print("STARTING LOAD FROM " + filePath)
 create_graph_from_neo4j_csv(LG, filePath)
 print("LOAD DONE")
+
 #### IMPORT FILE
 #start_time = time.time()
 #G = import_node_link_data_to_graph('/var/tmp/node_link_data_5000.json')
@@ -319,13 +319,13 @@ print("subG:  " + str(subG.number_of_nodes()))
 print("LG: " + str(LG.number_of_nodes()))
 print("G:  " + str(G.number_of_nodes()))
 
-#algo_pagerank(LG)
-#algo_pagerank(G)
 print("========= ALGO SUBLG")
 algo_pagerank(subLG)
 print("========= ALGO SUBG")
 algo_pagerank(subG)
-
+algo_pagerank(G, None, "default", False)
+algo_pagerank(G, None, "numpy", False)
+algo_pagerank(G, None, "scipy", False)     
 
 #algo_degree_centrality(G)
 #algo_betweenness_centrality(G)
