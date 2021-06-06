@@ -244,10 +244,10 @@ with open(filepath, 'r') as csv_file1:
     unique_persons = remove_doubles(full_person_list)
     
     print("ACTORS: " + str(len(unique_actors)))
-#    print("GENRES: " + str(len(unique_genres)))
-#    print("KEYWOR: " + str(len(unique_keywords)))
-#    print("COMPAN: " + str(len(unique_companies)))
-#    print("DIRECT: " + str(len(unique_directors)))
+    print("GENRES: " + str(len(unique_genres)))
+    print("KEYWOR: " + str(len(unique_keywords)))
+    print("COMPAN: " + str(len(unique_companies)))
+    print("DIRECT: " + str(len(unique_directors)))
     print("PERSONS: " + str(len(unique_persons)))
 
 #    print(unique_keywords)
@@ -259,55 +259,82 @@ with open(filepath, 'r') as csv_file1:
     print("START ADDING NODES")
     startTimeNodes= time.time()
 #    for actor in unique_actors:
-    roleList = []
+    actorDict = {}
+    directorDict = {}
+    companyDict = {}
+    keywordDict = {}
+    genreDict = {}
     for person in unique_persons:
+        roleList = []
         if (person in unique_directors):
             roleList.append('DIRECTOR')
+            directorDict[person] = id
         if (person in unique_actors):
-            roleList.append('ACTOR')
+            roleList.append('ACTOR')     
+            actorDict[person] = id
         G.add_node(id, label='PERSON', name=str(person), roles=roleList)
         id+=1
-        roleList.clear()
     for keyword in unique_keywords:
+        keywordDict[keyword] = id
         G.add_node(id, label='KEYWORD', name=str(keyword))
         id+=1
     for genre in unique_genres:
+        genreDict[genre] = id
         G.add_node(id, label='GENRE' , name=str(genre))
         id+=1
 #    for director in unique_directors:
 #        G.add_node(id, label='DIRECTOR' , name=str(director))
 #        id+=1
     for company in unique_companies:
+        companyDict[company] = id
         G.add_node(id, label='PRODUCTION_COMPANY', name=str(company))
         id+=1
 print("ADDED NODES IN " + to_ms(time.time() - startTimeNodes))
 
 # creating movienodes and relationships
 print("START ADDING MOVIES AND RELATIONS")
-startTimeMovies = (time.time())  
+startTimeMovies = (time.time())
+tmpGraph = G.nodes(data=True)  
 with open(filepath, 'r') as csv_file1:
     reader1 = csv.DictReader(csv_file1, quotechar='"', delimiter=',')
     linecount=1
+    print("ID:" , id)
 # Reading actors, genres, keywords, companies and directors for every movie
     for row in reader1:
         if linecount < limit:
-            linecount = linecount + 1 
+            linecount = linecount + 1
             G.add_node(id, name=row['original_title'], label='MOVIE', attr_dict=row)
-            id+=1
             for actor1 in row['cast'].split("|"):
+                idActor1 = actorDict[actor1]
+                #idActor1 = [idtemp1 for idtemp1,attributes1 in tmpGraph if ('ACTOR' in attributes1.get('roles',"None") and attributes1.get('name') == actor1)][0]
+                #idActor1 = str([idtemp1 for idtemp1,attributes1 in G.nodes(data=True) if ('ACTOR' in attributes1.get('roles',"None") and attributes1.get('name') == actor1)][0])
+                
                 for actor2 in row['cast'].split("|"):
-                    if actor2 != actor:
-                        G.add_edge(actor1, actor2,type='ACTED_WITH',count=1.0)
-                        G.add_edge(actor2, actor1,type='ACTED_WITH',count=1.0)
-                G.add_edges_from([(actor1, row['original_title'])], type='ACTED_IN' )
+                    idActor2 = actorDict[actor2]
+                    #idActor2 = [idtemp2 for idtemp2,attributes2 in tmpGraph if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0]
+                    #idActor2 = str([idtemp2 for idtemp2,attributes2 in G.nodes(data=True) if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0])
+                    if idActor1 != idActor2:
+                        G.add_edge(idActor1, idActor2 ,type='ACTED_WITH',count=1.0)
+                        #G.add_edge(idActor2, idActor1,type='ACTED_WITH',count=1.0)
+                G.add_edge(idActor1, id, type='ACTED_IN' )
             for director in row['director'].split("|"):
-                G.add_edges_from([(director, row['original_title'])], type="DIRECTED" )
+                #idDirector = [idtemp for idtemp,attributes in tmpGraph if ('DIRECTOR' in attributes.get('roles',"None") and attributes.get('name') == director)][0]
+                idDirector = directorDict[director]
+                G.add_edge(idDirector, id, type="DIRECTED" )
             for company in row['production_companies'].split("|"):
-                G.add_edges_from([(company, row['original_title'])], type="PRODUCED" )    
+                #idCompany = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('label') == 'PRODUCTION_COMPANY' and attributes.get('name') == company)][0]
+                idCompany = companyDict[company]
+                G.add_edge(idCompany, id, type="PRODUCED" )    
             for genre in row['genres'].split("|"):
-                G.add_edges_from([(row['original_title'], genre)], type="IN_GENRE" )
+                #idGenre = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('label') == 'GENRE' and attributes.get('name') == genre)][0]
+                idGenre = genreDict[genre]
+                G.add_edge(id, idGenre, type="IN_GENRE" )
             for keyword in row['keywords'].split("|"):
-                G.add_edges_from([(row['original_title'], keyword)], type="HAS_KEYWORD" )
+                #idKeyword = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('label') == 'KEYWORD' and attributes.get('name') == keyword)][0]
+                idKeyword = keywordDict[keyword]
+                G.add_edge(id, idKeyword, type="HAS_KEYWORD" )
+            id+=1
+            #print(nx.info(G))
 print("ADDED MOVIES AND RELATIONS IN " + to_ms(time.time() - startTimeMovies))
 
 #peng = (unique_actors, unique_genres, unique_keywords, unique_companies, unique_directors)
@@ -340,7 +367,7 @@ if (doImportFromExportedCSV):
 #actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
 #print("ACTORS: " + str(len(actor_list)));
 
-print("INFO G:")
+print("######## INFO G:")
 print(nx.info(G))
 if (doImportFromExportedCSV):
     print("INFO LG:")
@@ -360,17 +387,41 @@ if (doImportFromExportedCSV):
 
 #for node in G.nodes(data=True)['name']:
 #    print(node)
-print("MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAN!")
-print([node for node in G.nodes(data=True) if dict(node[1])['name'] == 'Adam'])         
+    
 
-actor_list_G=[x for x,y in G.nodes(data=True) if list(y['roles']).count('ACTOR') > 0]
+actor_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('ACTOR') > 0]
+keyword_list_G=[x for x,y in G.nodes(data=True) if (y.get('label') == 'KEYWORD')]
+director_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('DIRECTOR') > 0]
+person_list_G=[x for x,y in G.nodes(data=True) if (y.get('label') == 'PERSON')]
+company_list_G=[x for x,y in G.nodes(data=True) if (y.get('label') == 'PRODUCTION_COMPANY')]
+genre_list_G=[x for x,y in G.nodes(data=True) if (y.get('label') == 'GENRE')]
+
+
+
+#print([y for x,y in G.nodes(data=True) if (y.get('name') == 'dna')])
 #
-print(sorted(actor_list_G))
-print("#########################")
-print(sorted(unique_actors))
+print("########### A ###############")
+print(len(sorted(actor_list_G)))
+print(len(sorted(unique_actors)))
+print("########## D ###############")
+print(len(sorted(director_list_G)))
+print(len(sorted(unique_directors)))
+print("########## P ###############")
+print(len(sorted(person_list_G)))
+print(len(sorted(unique_persons)))
+print("########## KW ###############")
+print(len(sorted(keyword_list_G)))
+print(len(sorted(unique_keywords)))
+print("########## G ###############")
+print(len(sorted(genre_list_G)))
+print(len(sorted(unique_genres)))
+print("########## C ###############")
+print(len(sorted(company_list_G)))
+print(len(sorted(unique_companies)))
+
 sys.exit(0)
 subG = G.subgraph(actor_list_G)
-
+print(nx.info(subG))
 #print("===== #onenode ========")
 #print(list(subG.nodes.data())[1])
 #if (doImportFromExportedCSV):
