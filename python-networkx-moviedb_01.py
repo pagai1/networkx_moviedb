@@ -264,6 +264,7 @@ with open(filepath, 'r') as csv_file1:
     companyDict = {}
     keywordDict = {}
     genreDict = {}
+    idDict = {}
     for person in unique_persons:
         roleList = []
         if (person in unique_directors):
@@ -289,6 +290,12 @@ with open(filepath, 'r') as csv_file1:
         companyDict[company] = id
         G.add_node(id, label='PRODUCTION_COMPANY', name=str(company))
         id+=1
+idDict.update(actorDict)
+idDict.update(directorDict)
+idDict.update(genreDict)
+idDict.update(keywordDict)
+idDict.update(companyDict)
+print(idDict)
 print("ADDED NODES IN " + to_ms(time.time() - startTimeNodes))
 
 # creating movienodes and relationships
@@ -298,7 +305,6 @@ tmpGraph = G.nodes(data=True)
 with open(filepath, 'r') as csv_file1:
     reader1 = csv.DictReader(csv_file1, quotechar='"', delimiter=',')
     linecount=1
-    print("ID:" , id)
 # Reading actors, genres, keywords, companies and directors for every movie
     for row in reader1:
         if linecount < limit:
@@ -419,7 +425,7 @@ print("########## C ###############")
 print(len(sorted(company_list_G)))
 print(len(sorted(unique_companies)))
 
-sys.exit(0)
+
 subG = G.subgraph(actor_list_G)
 print(nx.info(subG))
 #print("===== #onenode ========")
@@ -441,13 +447,13 @@ if (doImportFromExportedCSV):
  #   algo_pagerank(LG, None, "numpy", False)
     algo_pagerank(LG, None, "scipy", False)
 
-print("========= ALGO SUBG ==========")
-algo_pagerank(subG,None,"default", False)
-algo_pagerank(subG, None, "scipy", False)
-
 print("========= ALGO FULL G ==========")
-algo_pagerank(G,None,"default", False)
-algo_pagerank(G,None, "scipy", False)
+algo_pagerank(G,None, "default", True, idDict)
+algo_pagerank(G,None, "scipy", True, idDict)
+
+print("========= ALGO SUBG ==========")
+algo_pagerank(subG,None,"default", True, idDict)
+algo_pagerank(subG, None, "scipy", True, idDict)
 
 #algo_degree_centrality(G)
 #algo_betweenness_centrality(G)
