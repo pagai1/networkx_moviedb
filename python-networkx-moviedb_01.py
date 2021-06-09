@@ -295,7 +295,6 @@ idDict.update(directorDict)
 idDict.update(genreDict)
 idDict.update(keywordDict)
 idDict.update(companyDict)
-print(idDict)
 print("ADDED NODES IN " + to_ms(time.time() - startTimeNodes))
 
 # creating movienodes and relationships
@@ -309,7 +308,9 @@ with open(filepath, 'r') as csv_file1:
     for row in reader1:
         if linecount < limit:
             linecount = linecount + 1
-            G.add_node(id, name=row['original_title'], label='MOVIE', attr_dict=row)
+            G.add_node(id, label='MOVIE', name=row['original_title'])
+            for bums in row.keys():
+                G.nodes[id][bums] = row[bums]
             for actor1 in row['cast'].split("|"):
                 idActor1 = actorDict[actor1]
                 #idActor1 = [idtemp1 for idtemp1,attributes1 in tmpGraph if ('ACTOR' in attributes1.get('roles',"None") and attributes1.get('name') == actor1)][0]
@@ -321,7 +322,7 @@ with open(filepath, 'r') as csv_file1:
                     #idActor2 = str([idtemp2 for idtemp2,attributes2 in G.nodes(data=True) if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0])
                     if idActor1 != idActor2:
                         G.add_edge(idActor1, idActor2 ,type='ACTED_WITH',count=1.0)
-                        #G.add_edge(idActor2, idActor1,type='ACTED_WITH',count=1.0)
+                        G.add_edge(idActor2, idActor1,type='ACTED_WITH',count=1.0)
                 G.add_edge(idActor1, id, type='ACTED_IN' )
             for director in row['director'].split("|"):
                 #idDirector = [idtemp for idtemp,attributes in tmpGraph if ('DIRECTOR' in attributes.get('roles',"None") and attributes.get('name') == director)][0]
@@ -458,6 +459,12 @@ algo_pagerank(subG, None, "scipy", True, idDict)
 #algo_degree_centrality(G)
 #algo_betweenness_centrality(G)
 #get_hits(G)
+
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'GENRE')][10])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'PERSON')][10])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'MOVIE')][10])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'PRODUCTION_COMPANY')][10])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'KEYWORD')][10])
 
 
 #print(pagerank_scipy(subG))
