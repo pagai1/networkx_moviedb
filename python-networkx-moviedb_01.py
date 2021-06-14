@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.realpath(__file__),"../../n
 from helpers.generalStuff import *
 from helpers.networkx_load_n_save import *
 from algoPackage.pageRank import *
+from algoPackage.simRank import *
 
 from builtins import len
 from networkx.algorithms.coloring.greedy_coloring_with_interchange import Node
@@ -21,12 +22,6 @@ from _operator import itemgetter
 from xlwt.ExcelFormulaLexer import false_pattern
 from cairosvg.helpers import distance
 
-
-def getNodeCount(graph):
-    nodecount = 0
-    for node in G.nodes.items():
-        nodecount = nodecount + 1
-    return nodecount
 
 def get_hits(G):
     for bums in nx.hits(G,max_iter=500,normalized=True):
@@ -146,12 +141,6 @@ def algo_shortest_path(G):
 #   print("RUNTIME PageRank: ", end_time - start_time)
 
 
-def getNodeCount(graph):
-    nodecount = 0
-    for node in G.nodes.items():
-        nodecount = nodecount + 1
-    return nodecount
-
 def create_graph_from_neo4j_csv(LG,filePath):
     with open(filePath,'r') as csv_file:
         reader = csv.DictReader(csv_file,quotechar = '"', delimiter=',')
@@ -208,6 +197,14 @@ full_company_list = []
 full_director_list = []
 full_person_list = []
 
+actorDict = {}
+directorDict = {}
+companyDict = {}
+keywordDict = {}
+genreDict = {}
+idDict = {}
+
+
 # Creating graph
 G = nx.DiGraph(name="Graph of MovieDB")
 # ID Counter for unique nodes...*sigh*
@@ -250,30 +247,24 @@ with open(filepath, 'r') as csv_file1:
     print("DIRECT: " + str(len(unique_directors)))
     print("PERSONS: " + str(len(unique_persons)))
 
-#    print(unique_keywords)
-
-#    print("Runtime creating unique lists : " + str((time.time() - startTime)))
-    
-        
 # creating nodes
     print("START ADDING NODES")
     startTimeNodes= time.time()
 #    for actor in unique_actors:
-    actorDict = {}
-    directorDict = {}
-    companyDict = {}
-    keywordDict = {}
-    genreDict = {}
-    idDict = {}
+
     for person in unique_persons:
-        roleList = []
+        addActorRole=False
+        addDirectorRole=False
+        #roleList = []
         if (person in unique_directors):
-            roleList.append('DIRECTOR')
+         #   roleList.append('DIRECTOR')
+            addDirectorRole=True
             directorDict[person] = id
         if (person in unique_actors):
-            roleList.append('ACTOR')     
+            addActorRole=True
+          #  roleList.append('ACTOR')     
             actorDict[person] = id
-        G.add_node(id, label='PERSON', name=str(person), roles=roleList)
+        G.add_node(id, label='PERSON', name=str(person), ACTOR=addActorRole, DIRECTOR=addDirectorRole)
         id+=1
     for keyword in unique_keywords:
         keywordDict[keyword] = id
@@ -295,7 +286,7 @@ idDict.update(directorDict)
 idDict.update(genreDict)
 idDict.update(keywordDict)
 idDict.update(companyDict)
-print("ADDED NODES IN " + to_ms(time.time() - startTimeNodes))
+print("ADDED NODES IN " + to_ms(time.time() - startTimeNodes) + " s")
 
 # creating movienodes and relationships
 print("START ADDING MOVIES AND RELATIONS")
@@ -377,10 +368,12 @@ if (doImportFromExportedCSV):
 print("######## INFO G:")
 print(nx.info(G))
 if (doImportFromExportedCSV):
-    print("INFO LG:")
+    print("######## INFO LG:")
     print(nx.info(LG))
-    actor_list_LG=[nodeName for nodeName,nodeAttributes in G.nodes(data=True) if nodeAttributes['label'] == 'ACTOR']
-    subLG = LG.subgraph(actor_list_LG)
+    person_list_LG=[nodeName for nodeName,nodeAttributes in LG.nodes(data=True) if (nodeAttributes.get('label') == "PERSON")]
+    subLG = LG.subgraph(person_list_LG)
+    print("######## INFO SubLG:")
+    print(nx.info(SubLG))
 # ALGOS
 #algo_shortest_path(G)
 #all_pairs_shortest_path(G)
@@ -403,31 +396,32 @@ person_list_G=[x for x,y in G.nodes(data=True) if (y.get('label') == 'PERSON')]
 company_list_G=[x for x,y in G.nodes(data=True) if (y.get('label') == 'PRODUCTION_COMPANY')]
 genre_list_G=[x for x,y in G.nodes(data=True) if (y.get('label') == 'GENRE')]
 
-
-
 #print([y for x,y in G.nodes(data=True) if (y.get('name') == 'dna')])
 #
-print("########### A ###############")
-print(len(sorted(actor_list_G)))
-print(len(sorted(unique_actors)))
-print("########## D ###############")
-print(len(sorted(director_list_G)))
-print(len(sorted(unique_directors)))
-print("########## P ###############")
-print(len(sorted(person_list_G)))
-print(len(sorted(unique_persons)))
-print("########## KW ###############")
-print(len(sorted(keyword_list_G)))
-print(len(sorted(unique_keywords)))
-print("########## G ###############")
-print(len(sorted(genre_list_G)))
-print(len(sorted(unique_genres)))
-print("########## C ###############")
-print(len(sorted(company_list_G)))
-print(len(sorted(unique_companies)))
+
+# prints out Number of different node-labels
+#print("########### G ###############")
+#print("########### A ###############")
+#print(len(sorted(actor_list_G)))
+#print(len(sorted(unique_actors)))
+#print("########## D ###############")
+#print(len(sorted(director_list_G)))
+#print(len(sorted(unique_directors)))
+#print("########## P ###############")
+#print(len(sorted(person_list_G)))
+#print(len(sorted(unique_persons)))
+#print("########## KW ###############")
+#print(len(sorted(keyword_list_G)))
+#print(len(sorted(unique_keywords)))
+#print("########## G ###############")
+#print(len(sorted(genre_list_G)))
+#print(len(sorted(unique_genres)))
+#print("########## C ###############")
+#print(len(sorted(company_list_G)))
+#print(len(sorted(unique_companies)))
 
 
-subG = G.subgraph(actor_list_G)
+subG = G.subgraph(person_list_G)
 print(nx.info(subG))
 #print("===== #onenode ========")
 #print(list(subG.nodes.data())[1])
@@ -441,31 +435,39 @@ if (doImportFromExportedCSV):
 print("G    : " + str(G.number_of_nodes()))
 print("subG : " + str(subG.number_of_nodes()))
 
-if (doImportFromExportedCSV):
-    print("========= ALGO SUBLG")
-    algo_pagerank(subLG,None,"default", False)
-    algo_pagerank(LG, None, "default", False)
- #   algo_pagerank(LG, None, "numpy", False)
-    algo_pagerank(LG, None, "scipy", False)
-
-print("========= ALGO FULL G ==========")
-algo_pagerank(G,None, "default", True, idDict)
-algo_pagerank(G,None, "scipy", True, idDict)
-
-print("========= ALGO SUBG ==========")
-algo_pagerank(subG,None,"default", True, idDict)
-algo_pagerank(subG, None, "scipy", True, idDict)
+#################### PAGERANK ##############################
+# if (doImportFromExportedCSV):
+#     print("========= ALGO SUBLG")
+#     algo_pagerank(subLG,None,"default", True, idDict)
+#     algo_pagerank(LG, None, "default", True, idDict)
+#  #   algo_pagerank(LG, None, "numpy", False)
+#     algo_pagerank(LG, None, "scipy", True, idDict)
+# 
+# print("========= ALGO FULL G ==========")
+# algo_pagerank(G,None, "default", True, idDict)
+# algo_pagerank(G,None, "scipy", True, idDict)
+# 
+# print("========= ALGO SUBG ==========")
+# algo_pagerank(subG,None,"default", True, idDict)
+# algo_pagerank(subG, None, "scipy", True, idDict)
 
 #algo_degree_centrality(G)
 #algo_betweenness_centrality(G)
 #get_hits(G)
 
-print([y for x,y in G.nodes(data=True) if (y.get('label') == 'GENRE')][10])
-print([y for x,y in G.nodes(data=True) if (y.get('label') == 'PERSON')][10])
-print([y for x,y in G.nodes(data=True) if (y.get('label') == 'MOVIE')][10])
-print([y for x,y in G.nodes(data=True) if (y.get('label') == 'PRODUCTION_COMPANY')][10])
-print([y for x,y in G.nodes(data=True) if (y.get('label') == 'KEYWORD')][10])
 
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'GENRE')][9])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'PERSON')][9])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'MOVIE')][9])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'PRODUCTION_COMPANY')][9])
+print([y for x,y in G.nodes(data=True) if (y.get('label') == 'KEYWORD')][9])
+
+#################### SIMRANK ##############################
+#algo_simRank(subG,verbose=True)
+simDict = algo_simRank(G, verbose=False)
+
+for bums in simDict.items():
+    print(bums[0], G.nodes[bums[0]], bums)
 
 #print(pagerank_scipy(subG))
 #if limit < 100:
