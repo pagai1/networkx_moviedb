@@ -28,8 +28,7 @@ from _operator import itemgetter
 from xlwt.ExcelFormulaLexer import false_pattern
 from cairosvg.helpers import distance
 
-
-  
+ 
 def get_column_names(filereader):
   headers = next(filereader, None)
   return headers
@@ -44,48 +43,48 @@ def draw_graph(Graph):
     plt.show()
 
 
-def algo_shortest_path(G):
-    actor_list=[x for x,y in G.nodes(data=True) if y['labels'] == 'ACTOR']
-#===============================================================================
-# subgraph Returns a SubGraph view of the subgraph induced on nodes.
-# The induced subgraph of the graph contains the nodes in nodes and the edges between those nodes.
-#===============================================================================
-    subG = G.subgraph(actor_list)
-#    for actor in actor_list:
-#        print(actor)
-    numberOfActors = len(actor_list)
-#    print("FOUND " + str(numberOfActors) + " ACTORS." )
-    algoTime=time.time()
-    #Lahm
-#    for actor in actor_list:
-#       #print("Example: Calculating shortest paths from " + actor + " to anyone...\r")
-#        for actor2 in actor_list:
-#            if (actor != actor2):
-#                try:
-#                    path = nx.shortest_path(subG, source=(actor), target=actor2)
-#                except nx.NetworkXNoPath as e:
-#                    path = e
-#                except nx.NodeNotFound as e:
-#                    path = e
-    ### schnell
-    for i in range(numberOfActors):
-        actor = actor_list[i]
-        #print("STARTNODE: " + actor)
-        j = i + 1
-        while j < numberOfActors:
-            actor2 = actor_list[j]
-         #   print(actor2)
-            try:
-                path = nx.shortest_path(subG, source=(actor), target=actor2)
-            except nx.NetworkXNoPath as e:
-                path = e
-            except nx.NodeNotFound as e:
-                path = e
-            #print(path)
-            j = j + 1 
-    #print("RUNTIME : " + str(time.time() - start_time) )
-    #     print(path)
-    print("RUNTIME ShortestPath - " +  str(limit) + " entries - " + str(numberOfActors) + " actors : " + to_ms(time.time() - algoTime) + "s.")
+####def algo_shortest_path(G):
+####    actor_list=[x for x,y in G.nodes(data=True) if y['labels'] == 'ACTOR']
+#####===============================================================================
+##### subgraph Returns a SubGraph view of the subgraph induced on nodes.
+##### The induced subgraph of the graph contains the nodes in nodes and the edges between those nodes.
+#####===============================================================================
+####    subG = G.subgraph(actor_list)
+#####    for actor in actor_list:
+#####        print(actor)
+####    numberOfActors = len(actor_list)
+#####    print("FOUND " + str(numberOfActors) + " ACTORS." )
+####    algoTime=time.time()
+####    #Lahm
+#####    for actor in actor_list:
+#####       #print("Example: Calculating shortest paths from " + actor + " to anyone...\r")
+#####        for actor2 in actor_list:
+#####            if (actor != actor2):
+#####                try:
+#####                    path = nx.shortest_path(subG, source=(actor), target=actor2)
+#####                except nx.NetworkXNoPath as e:
+#####                    path = e
+#####                except nx.NodeNotFound as e:
+#####                    path = e
+####    ### schnell
+####    for i in range(numberOfActors):
+####        actor = actor_list[i]
+####        #print("STARTNODE: " + actor)
+####        j = i + 1
+####        while j < numberOfActors:
+####            actor2 = actor_list[j]
+####         #   print(actor2)
+####            try:
+####                path = nx.shortest_path(subG, source=(actor), target=actor2)
+####            except nx.NetworkXNoPath as e:
+####                path = e
+####            except nx.NodeNotFound as e:
+####                path = e
+####            #print(path)
+####            j = j + 1 
+####    #print("RUNTIME : " + str(time.time() - start_time) )
+####    #     print(path)
+####    print("RUNTIME ShortestPath - " +  str(limit) + " entries - " + str(numberOfActors) + " actors : " + to_ms(time.time() - algoTime) + "s.")
 
 
 #def algo_pagerank(G):
@@ -104,9 +103,24 @@ def algo_shortest_path(G):
 
 
 ##### MAIN ##############
+### SETTINGS ############
 verbose=False
-doImportFromExportedCSV = True
+doImportFromExportedCSV = False
+doExport=True
+doMultiExport=False
+limit=0
+seclimit=1
+operatorFunction="eq"
+verbose=False
+doAlgo=True
+algoVerbose=False
+drawit=False
 doExport=False
+createByImport=True
+
+
+
+#################################
 
 filepath='/home/pagai/graph-data/tmdb_fixed.csv'
 file = open(filepath, 'r')
@@ -121,168 +135,162 @@ else:
 if limit != "all":
     cleanup = True
     
-
-# Loading headers
-header_reader = csv.reader(file)
-#print("HEADERS : " + str(get_column_names(header_reader)))
-#print(headers)
-
-full_actor_list = []
-full_genre_list = []
-full_keyword_list = []
-full_company_list = []
-full_director_list = []
-full_person_list = []
-
-actorDict = {}
-directorDict = {}
-companyDict = {}
-keywordDict = {}
-genreDict = {}
-idDict = {}
-
-
-# Creating graph
-G = nx.DiGraph(name="Graph of MovieDB")
-# ID Counter for unique nodes...*sigh*
-id=1
-## opening file
-with open(filepath, 'r') as csv_file1:
-    linecount = 1 
-    reader1 = csv.DictReader(csv_file1, quotechar='"', delimiter=',')
-
-# Reading actors, genres, keywords, companies and directors
-    startTime = time.time()
-    for row in reader1:
-        if linecount < limit:
-            linecount = linecount + 1  
-            for actor in row['cast'].split("|"):
-                full_actor_list.append(actor)
-                full_person_list.append(actor)
-            for genre in row['genres'].split("|"):
-                full_genre_list.append(genre)
-            for keyword in row['keywords'].split("|"):
-                full_keyword_list.append(keyword)
-            for company in row['production_companies'].split("|"):
-                full_company_list.append(company)
-            for director in row['director'].split("|"):
-                full_director_list.append(director)
-                full_person_list.append(director)
-
-# removing double entries        
-    unique_actors = remove_doubles(full_actor_list)
-    unique_genres = remove_doubles(full_genre_list)
-    unique_keywords = remove_doubles(full_keyword_list)
-    unique_companies = remove_doubles(full_company_list)
-    unique_directors = remove_doubles(full_director_list)
-    unique_persons = remove_doubles(full_person_list)
-    if (verbose): 
-        print("ACTORS: " + str(len(unique_actors)))
-        print("GENRES: " + str(len(unique_genres)))
-        print("KEYWOR: " + str(len(unique_keywords)))
-        print("COMPAN: " + str(len(unique_companies)))
-        print("DIRECT: " + str(len(unique_directors)))
-        print("PERSONS: " + str(len(unique_persons)))
-
-# creating nodes
-    if (verbose): 
-        print("START ADDING NODES")
-    startTimeNodes= time.time()
-#    for actor in unique_actors:
-
-    for person in unique_persons:
-        addActorRole=False
-        addDirectorRole=False
-        #roleList = []
-        if (person in unique_directors):
-         #   roleList.append('DIRECTOR')
-            addDirectorRole=True
-            directorDict[person] = id
-        if (person in unique_actors):
-            addActorRole=True
-          #  roleList.append('ACTOR')     
-            actorDict[person] = id
-        G.add_node(id, labels='PERSON', name=str(person), ACTOR=addActorRole, DIRECTOR=addDirectorRole)
-        id+=1
-    for keyword in unique_keywords:
-        keywordDict[keyword] = id
-        G.add_node(id, labels='KEYWORD', name=str(keyword))
-        id+=1
-    for genre in unique_genres:
-        genreDict[genre] = id
-        G.add_node(id, labels='GENRE' , name=str(genre))
-        id+=1
-#    for director in unique_directors:
-#        G.add_node(id, labels='DIRECTOR' , name=str(director))
-#        id+=1
-    for company in unique_companies:
-        companyDict[company] = id
-        G.add_node(id, labels='PRODUCTION_COMPANY', name=str(company))
-        id+=1
-idDict.update(actorDict)
-idDict.update(directorDict)
-idDict.update(genreDict)
-idDict.update(keywordDict)
-idDict.update(companyDict)
-if (verbose): 
-    print("ADDED NODES IN " + to_ms(time.time() - startTimeNodes) + " s")
-
-# creating movienodes and relationships
-if (verbose): 
-    print("START ADDING MOVIES AND RELATIONS")
-startTimeMovies = (time.time())
-tmpGraph = G.nodes(data=True)  
-with open(filepath, 'r') as csv_file1:
-    reader1 = csv.DictReader(csv_file1, quotechar='"', delimiter=',')
-    linecount=1
-# Reading actors, genres, keywords, companies and directors for every movie
-    for row in reader1:
-        if linecount < limit:
-            linecount = linecount + 1
-            G.add_node(id, labels='MOVIE', name=row['original_title'])
-            for bums in row.keys():
-                G.nodes[id][bums] = row[bums]
-            for actor1 in row['cast'].split("|"):
-                idActor1 = actorDict[actor1]
-                #idActor1 = [idtemp1 for idtemp1,attributes1 in tmpGraph if ('ACTOR' in attributes1.get('roles',"None") and attributes1.get('name') == actor1)][0]
-                #idActor1 = str([idtemp1 for idtemp1,attributes1 in G.nodes(data=True) if ('ACTOR' in attributes1.get('roles',"None") and attributes1.get('name') == actor1)][0])
-                
-                for actor2 in row['cast'].split("|"):
-                    idActor2 = actorDict[actor2]
-                    #idActor2 = [idtemp2 for idtemp2,attributes2 in tmpGraph if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0]
-                    #idActor2 = str([idtemp2 for idtemp2,attributes2 in G.nodes(data=True) if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0])
-                    if idActor1 != idActor2:
-                        G.add_edge(idActor1, idActor2 ,type='ACTED_WITH',count=1.0)
-                        G.add_edge(idActor2, idActor1,type='ACTED_WITH',count=1.0)
-                G.add_edge(idActor1, id, type='ACTED_IN' )
-            for director in row['director'].split("|"):
-                #idDirector = [idtemp for idtemp,attributes in tmpGraph if ('DIRECTOR' in attributes.get('roles',"None") and attributes.get('name') == director)][0]
-                idDirector = directorDict[director]
-                G.add_edge(idDirector, id, type="DIRECTED" )
-            for company in row['production_companies'].split("|"):
-                #idCompany = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'PRODUCTION_COMPANY' and attributes.get('name') == company)][0]
-                idCompany = companyDict[company]
-                G.add_edge(idCompany, id, type="PRODUCED" )    
-            for genre in row['genres'].split("|"):
-                #idGenre = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'GENRE' and attributes.get('name') == genre)][0]
-                idGenre = genreDict[genre]
-                G.add_edge(id, idGenre, type="IN_GENRE" )
-            for keyword in row['keywords'].split("|"):
-                #idKeyword = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'KEYWORD' and attributes.get('name') == keyword)][0]
-                idKeyword = keywordDict[keyword]
-                G.add_edge(id, idKeyword, type="HAS_KEYWORD" )
+if not createByImport:
+    # Loading headers
+    header_reader = csv.reader(file)
+    #print("HEADERS : " + str(get_column_names(header_reader)))
+    #print(headers)
+    
+    full_actor_list = []
+    full_genre_list = []
+    full_keyword_list = []
+    full_company_list = []
+    full_director_list = []
+    full_person_list = []
+    
+    actorDict = {}
+    directorDict = {}
+    companyDict = {}
+    keywordDict = {}
+    genreDict = {}
+    idDict = {}
+    
+    
+    # Creating graph
+    G = nx.DiGraph(name="Graph of MovieDB")
+    # ID Counter for unique nodes...*sigh*
+    id=1
+    ## opening file
+    with open(filepath, 'r') as csv_file1:
+        linecount = 1 
+        reader1 = csv.DictReader(csv_file1, quotechar='"', delimiter=',')
+    
+    # Reading actors, genres, keywords, companies and directors
+        startTime = time.time()
+        for row in reader1:
+            if linecount < limit:
+                linecount = linecount + 1  
+                for actor in row['cast'].split("|"):
+                    full_actor_list.append(actor)
+                    full_person_list.append(actor)
+                for genre in row['genres'].split("|"):
+                    full_genre_list.append(genre)
+                for keyword in row['keywords'].split("|"):
+                    full_keyword_list.append(keyword)
+                for company in row['production_companies'].split("|"):
+                    full_company_list.append(company)
+                for director in row['director'].split("|"):
+                    full_director_list.append(director)
+                    full_person_list.append(director)
+    
+    # removing double entries        
+        unique_actors = remove_doubles(full_actor_list)
+        unique_genres = remove_doubles(full_genre_list)
+        unique_keywords = remove_doubles(full_keyword_list)
+        unique_companies = remove_doubles(full_company_list)
+        unique_directors = remove_doubles(full_director_list)
+        unique_persons = remove_doubles(full_person_list)
+        if (verbose): 
+            print("ACTORS   : " + str(len(unique_actors)))
+            print("GENRES   : " + str(len(unique_genres)))
+            print("KEYWORDS : " + str(len(unique_keywords)))
+            print("COMPANIES: " + str(len(unique_companies)))
+            print("DIRECTORS: " + str(len(unique_directors)))
+            print("PERSONS  : " + str(len(unique_persons)))
+    
+    # creating nodes
+        if (verbose): 
+            print("START ADDING NODES")
+        startTimeNodes= time.time()
+    #    for actor in unique_actors:
+    
+        for person in unique_persons:
+            addActorRole=False
+            addDirectorRole=False
+            #roleList = []
+            if (person in unique_directors):
+             #   roleList.append('DIRECTOR')
+                addDirectorRole=True
+                directorDict[person] = id
+            if (person in unique_actors):
+                addActorRole=True
+              #  roleList.append('ACTOR')     
+                actorDict[person] = id
+            G.add_node(id, labels='PERSON', name=str(person), ACTOR=addActorRole, DIRECTOR=addDirectorRole)
             id+=1
-            #print(nx.info(G))
-if (verbose): 
-    print("ADDED MOVIES AND RELATIONS IN " + to_ms(time.time() - startTimeMovies))
-
-#peng = (unique_actors, unique_genres, unique_keywords, unique_companies, unique_directors)
-#for bums in peng:
-#    print(bums.len(bums))
-#print(G.nodes(data="name"))
-
-#export_graph_to_node_link_data(G,"/home/pagai/graph-data/moviedb_export_node_link_data.json")
-
+        for keyword in unique_keywords:
+            keywordDict[keyword] = id
+            G.add_node(id, labels='KEYWORD', name=str(keyword))
+            id+=1
+        for genre in unique_genres:
+            genreDict[genre] = id
+            G.add_node(id, labels='GENRE' , name=str(genre))
+            id+=1
+    #    for director in unique_directors:
+    #        G.add_node(id, labels='DIRECTOR' , name=str(director))
+    #        id+=1
+        for company in unique_companies:
+            companyDict[company] = id
+            G.add_node(id, labels='PRODUCTION_COMPANY', name=str(company))
+            id+=1
+    idDict.update(actorDict)
+    idDict.update(directorDict)
+    idDict.update(genreDict)
+    idDict.update(keywordDict)
+    idDict.update(companyDict)
+    if (verbose): 
+        print("ADDED NODES IN " + to_ms(time.time() - startTimeNodes) + " s")
+    
+    # creating movienodes and relationships
+    if (verbose): 
+        print("START ADDING MOVIES AND RELATIONS")
+    startTimeMovies = (time.time())
+    tmpGraph = G.nodes(data=True)  
+    with open(filepath, 'r') as csv_file1:
+        reader1 = csv.DictReader(csv_file1, quotechar='"', delimiter=',')
+        linecount=1
+    # Reading actors, genres, keywords, companies and directors for every movie
+        for row in reader1:
+            if linecount < limit:
+                linecount = linecount + 1
+                G.add_node(id, labels='MOVIE', name=row['original_title'])
+                for bums in row.keys():
+                    G.nodes[id][bums] = row[bums]
+                for actor1 in row['cast'].split("|"):
+                    idActor1 = actorDict[actor1]
+                    #idActor1 = [idtemp1 for idtemp1,attributes1 in tmpGraph if ('ACTOR' in attributes1.get('roles',"None") and attributes1.get('name') == actor1)][0]
+                    #idActor1 = str([idtemp1 for idtemp1,attributes1 in G.nodes(data=True) if ('ACTOR' in attributes1.get('roles',"None") and attributes1.get('name') == actor1)][0])
+                    
+                    for actor2 in row['cast'].split("|"):
+                        idActor2 = actorDict[actor2]
+                        #idActor2 = [idtemp2 for idtemp2,attributes2 in tmpGraph if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0]
+                        #idActor2 = str([idtemp2 for idtemp2,attributes2 in G.nodes(data=True) if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0])
+                        if idActor1 != idActor2:
+                            G.add_edge(idActor1, idActor2 ,type='ACTED_WITH',count=1.0)
+                            G.add_edge(idActor2, idActor1,type='ACTED_WITH',count=1.0)
+                    G.add_edge(idActor1, id, type='ACTED_IN' )
+                for director in row['director'].split("|"):
+                    #idDirector = [idtemp for idtemp,attributes in tmpGraph if ('DIRECTOR' in attributes.get('roles',"None") and attributes.get('name') == director)][0]
+                    idDirector = directorDict[director]
+                    G.add_edge(idDirector, id, type="DIRECTED" )
+                for company in row['production_companies'].split("|"):
+                    #idCompany = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'PRODUCTION_COMPANY' and attributes.get('name') == company)][0]
+                    idCompany = companyDict[company]
+                    G.add_edge(idCompany, id, type="PRODUCED" )    
+                for genre in row['genres'].split("|"):
+                    #idGenre = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'GENRE' and attributes.get('name') == genre)][0]
+                    idGenre = genreDict[genre]
+                    G.add_edge(id, idGenre, type="IN_GENRE" )
+                for keyword in row['keywords'].split("|"):
+                    #idKeyword = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'KEYWORD' and attributes.get('name') == keyword)][0]
+                    idKeyword = keywordDict[keyword]
+                    G.add_edge(id, idKeyword, type="HAS_KEYWORD" )
+                id+=1
+                #print(nx.info(G))
+    if (verbose): 
+        print("ADDED MOVIES AND RELATIONS IN " + to_ms(time.time() - startTimeMovies))
+    
+    
 # LG is the graph loaded from the CSV.         
 if (doImportFromExportedCSV):
     LG = nx.DiGraph(name="Graph loaded from neo4j CSV")
@@ -293,13 +301,22 @@ if (doImportFromExportedCSV):
     if (verbose): 
         print("LOAD DONE")
 
-#### IMPORT FILE
-#start_time = time.time()
-#IG = import_node_link_data_to_graph('/tmp/node_link_data_export.json')
-#print("File load finished in " + str(time.time() - start_time))
 
-# EXPORT FILE
-if (doExport):
+############ Export/Import ##########
+if createByImport:
+    importFile='/home/pagai/graph-data/node_link_data/moviedb/node_link_data_export_'+str(limit)+'.json'
+    print("IMPORTING " + importFile)
+    start_time = time.time()
+    G = import_node_link_data_to_graph(importFile, verbose=verbose)
+    if (verbose): 
+        print("IMPORTED FILE: " + importFile)
+        print(nx.info(G))
+
+if doExport:
+    export_graph_to_node_link_data(G, '/tmp/node_link_data_export_'+str(limit)+'.json', verbose=verbose)
+
+# MULTI EXPORT FILE
+if (doMultiExport):
     start_time = time.time()
     export_graph_to_node_link_data(LG, '/tmp/node_link_data_export.json', verbose=False)
     print("NodeLinkData export finished in : " + str(time.time() - start_time))
@@ -319,21 +336,6 @@ if (doExport):
     export_graph_to_gml_data(LG,'/tmp/gml_data_export.gml')
     print("GML export finished in : " + str(time.time() - start_time))
 
-print("######## INFO G:")
-print(nx.info(LG))
-#print(LG.nodes(data=True))
-moviedict = ([y for x,y in LG.nodes(data=True)])
-count = 0
-for bums in moviedict:
-    count=count+1
-    print(bums)
-print(count)
-#actor_list=[x for x,y in G.nodes(data=True) if y['type'] == 'actor']
-#print("ACTORS: " + str(len(actor_list)));
-
-if (verbose): 
-    print("######## INFO G:")
-    print(nx.info(G))
 if (doImportFromExportedCSV):
     if (verbose): 
         print("######## INFO LG:")
@@ -345,25 +347,11 @@ if (doImportFromExportedCSV):
         print(nx.info(SubLG))
 
 
-# ALGOS
-#algo_shortest_path(G)
-#all_pairs_shortest_path(G)
-#print(list(G.nodes.data())[1])
-#print(list(LG.nodes.data())[1])
-    
+#########################################################################
 
-actor_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('ACTOR') > 0]
-keyword_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'KEYWORD')]
-director_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('DIRECTOR') > 0]
-person_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PERSON')]
-company_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PRODUCTION_COMPANY')]
-genre_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'GENRE')]
-
-#print([y for x,y in G.nodes(data=True) if (y.get('name') == 'dna')])
-#
-
-# prints out Number of different node-labels
 if (verbose): 
+    print("######## INFO G:")
+    print(nx.info(G))
     print("########### G ###############")
     print("########### A ###############")
     print(len(sorted(actor_list_G)))
@@ -384,9 +372,7 @@ if (verbose):
     print(len(sorted(company_list_G)))
     print(len(sorted(unique_companies)))
 
-subG = G.subgraph(person_list_G)
-if (verbose): 
-    print(nx.info(subG))
+
 #print("===== #onenode ========")
 #print(list(subG.nodes.data())[1])
 #if (doImportFromExportedCSV):
@@ -401,59 +387,62 @@ if (verbose):
     print("subG : " + str(subG.number_of_nodes()))
 
 
-#################### PAGERANK ##############################
-# if (doImportFromExportedCSV):
-#     print("========= ALGO SUBLG")
-#     algo_pagerank(subLG,None,"default", True, idDict)
-#     algo_pagerank(LG, None, "default", True, idDict)
-#  #   algo_pagerank(LG, None, "numpy", False)
-#     algo_pagerank(LG, None, "scipy", True, idDict)
-# 
-# print("========= ALGO FULL G ==========")
-# algo_pagerank(G,None, "default", True, idDict)
-# algo_pagerank(G,None, "scipy", True, idDict)
-# 
-# print("========= ALGO SUBG ==========")
-# algo_pagerank(subG,None,"default", True, idDict)
-# algo_pagerank(subG, None, "scipy", True, idDict)
+########### ALGOS ################
+if doAlgo:
 
-#algo_degree_centrality(G)
-#algo_betweenness_centrality(G)
-#get_hits(G)
+    #### SHORTEST PATH
+    #algo_shortest_path(G)
+    #algo_all_pairs_dijkstra(G,verbose=True,inputWeight='weight')
+    #algo_all_pairs_bellman_ford_path(G,verbose=True,inputWeight='weight')
+    
+    #all_pairs_shortest_path(G)
+    
+    #algo_all_pairs_shortest_path(G,verbose=False,inputWeight='weight')
+    #draw_all_shortest_path_for_single_node(G,"1")
+    #all_shortest_path_for_single_node(G,"12")
+    
+    
+    #### SHORTESTPATH ASTAR
+    #algo_all_pairs_shortest_path_astar(G,verbose=verbose)
+    
+    #### PAGERANK
+    #actor_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('ACTOR') > 0]
+    #keyword_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'KEYWORD')]
+    #director_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('DIRECTOR') > 0]
+    person_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PERSON')]
+    #company_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PRODUCTION_COMPANY')]
+    #genre_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'GENRE')]
+    subG = G.subgraph(person_list_G)
+    if not verbose: 
+        print(nx.info(subG))
+        #print(nx.info(G))
+    #weightInputForAlgos="weight"
+    weightInputForAlgos=None
+    print("==============================")
+    start_time_algo = time.time()
+    #algo_pagerank(subG, "default",  weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
+    # NUMPY IS OBSOLETE
+    #algo_pagerank(G, "numpy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=10)
+    algo_pagerank(subG, "scipy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
+    print("==============================")
+    print("EXECUTION TOOK: " + to_ms(time.time() - start_time))
+    #### SIMRANK
+    #algo_simRank(G,verbose=True,max_iterations=1)
+    
+    #### DEGREE CENTRALITY
+    # Degree Centrality - own
+    #verbose=True
+    #peng = sorted(G.degree, key=lambda x: x[1], reverse=True)
+    #if (verbose):
+    #    for bums in peng:
+    #        print(bums)
+    
+    # Degree Centrality - native
+    #algo_degree_centrality(G, verbose=False)
+    
+    #### HITS
+    
+    #get_hits(G)
 
-if (verbose): 
-    print([y for x,y in G.nodes(data=True) if (y.get('labels') == 'GENRE')][9])
-    print([y for x,y in G.nodes(data=True) if (y.get('labels') == 'PERSON')][9])
-    print([y for x,y in G.nodes(data=True) if (y.get('labels') == 'MOVIE')][9])
-    print([y for x,y in G.nodes(data=True) if (y.get('labels') == 'PRODUCTION_COMPANY')][9])
-    print([y for x,y in G.nodes(data=True) if (y.get('labels') == 'KEYWORD')][9])
-
-#################### SIMRANK ##############################
-#algo_simRank(subG,verbose=True)
-#simDict = algo_simRank(G, verbose=False)
-#if (verbose): 
-#    for bums in simDict.items():
-#        print(bums[0], G.nodes[bums[0]], bums)
-
-#for bums in G.nodes(data=True):
-#    print(bums)
-
-##################### FIND BY DEGREE #######################
-#seclimit=6
-#operatorFunction="eq"
-#find_nodes_by_degree(G,seclimit,function=operatorFunction, verbose=False)
-#algo_simRank(G,verbose=False,max_iterations=10)
-
-##################### DEGREE CENTRALITY ####################
-#start_time=time.time()
-#peng = sorted(G.degree, key=lambda x: x[1], reverse=True)
-#algo_degree_centrality(G, verbose=True)
-#end_time=time.time()
-
-
-
-#print(pagerank_scipy(subG))
-#if limit < 100:
-#    draw_graph(G)
-
-#print("FERTIG")
+if (drawit):
+    draw_graph(G)
