@@ -112,12 +112,12 @@ limit=0
 seclimit=1
 operatorFunction="eq"
 verbose=False
-doAlgo=True
+doAlgo=False
 algoVerbose=False
 drawit=False
 doExport=False
-createByImport=True
-
+createByImport=False
+importExportFileName = "/tmp/node_link_data_export_moviedb_" + str(limit) + ".json"
 
 
 #################################
@@ -154,8 +154,7 @@ if not createByImport:
     keywordDict = {}
     genreDict = {}
     idDict = {}
-    
-    
+        
     # Creating graph
     G = nx.DiGraph(name="Graph of MovieDB")
     # ID Counter for unique nodes...*sigh*
@@ -386,8 +385,17 @@ if (verbose):
     print("G    : " + str(G.number_of_nodes()))
     print("subG : " + str(subG.number_of_nodes()))
 
+########## DELETE-test Clear ################
+numberOfNodes = G.number_of_nodes()
+numberOfEdges = G.number_of_edges()
 
-########### ALGOS ################
+start_time_clear=time.time()
+G.clear()
+export_graph_to_node_link_data(G, importExportFileName, verbose=verbose)
+end_time_clear=time.time()
+print(numberOfNodes, numberOfEdges, to_ms(end_time_clear - start_time_clear), sep=",")
+
+########### ALGO TESTS ################
 if doAlgo:
 
     #### SHORTEST PATH
