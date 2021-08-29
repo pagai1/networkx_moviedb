@@ -6,6 +6,8 @@ import time
 import sys
 import json
 import os
+import gc
+from _tkinter import create
 
 # import own helper-modules
 sys.path.append(os.path.abspath(os.path.join(os.path.realpath(__file__),"../../networkx_modules")))
@@ -106,19 +108,24 @@ def draw_graph(Graph):
 ### SETTINGS ############
 verbose=False
 doImportFromExportedCSV = False
-doExport=True
+doExport=False
 doMultiExport=False
+doExport=True
+createByImport=True
+
+
 limit=0
 seclimit=1
-operatorFunction="eq"
-verbose=False
-doAlgo=False
-algoVerbose=False
-drawit=False
-doExport=False
-createByImport=False
 importExportFileName = "/tmp/node_link_data_export_moviedb_" + str(limit) + ".json"
 
+doAlgo=False
+operatorFunction="eq"
+algoVerbose=False
+drawit=False
+
+deleteTest=False
+testGetAll=False
+testSearch=True
 
 #################################
 
@@ -134,7 +141,7 @@ else:
         print("LOADING " + str(limit) + " LINES FROM " + filepath)
 if limit != "all":
     cleanup = True
-    
+
 if not createByImport:
     # Loading headers
     header_reader = csv.reader(file)
@@ -165,7 +172,6 @@ if not createByImport:
         reader1 = csv.DictReader(csv_file1, quotechar='"', delimiter=',')
     
     # Reading actors, genres, keywords, companies and directors
-        startTime = time.time()
         for row in reader1:
             if linecount < limit:
                 linecount = linecount + 1  
@@ -265,31 +271,45 @@ if not createByImport:
                         #idActor2 = [idtemp2 for idtemp2,attributes2 in tmpGraph if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0]
                         #idActor2 = str([idtemp2 for idtemp2,attributes2 in G.nodes(data=True) if ('ACTOR' in attributes2.get('roles',"None") and attributes2.get('name') == actor2)][0])
                         if idActor1 != idActor2:
-                            G.add_edge(idActor1, idActor2 ,type='ACTED_WITH',count=1.0)
-                            G.add_edge(idActor2, idActor1,type='ACTED_WITH',count=1.0)
-                    G.add_edge(idActor1, id, type='ACTED_IN' )
+                            G.add_edge(idActor1, idActor2 ,type='ACTED_WITH', weight=1 )
+                            G.add_edge(idActor2, idActor1,type='ACTED_WITH', weight=1 )
+                    G.add_edge(idActor1, id, type='ACTED_IN', weight=1 )
                 for director in row['director'].split("|"):
                     #idDirector = [idtemp for idtemp,attributes in tmpGraph if ('DIRECTOR' in attributes.get('roles',"None") and attributes.get('name') == director)][0]
                     idDirector = directorDict[director]
-                    G.add_edge(idDirector, id, type="DIRECTED" )
+                    G.add_edge(idDirector, id, type="DIRECTED", weight=1 )
                 for company in row['production_companies'].split("|"):
                     #idCompany = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'PRODUCTION_COMPANY' and attributes.get('name') == company)][0]
                     idCompany = companyDict[company]
-                    G.add_edge(idCompany, id, type="PRODUCED" )    
+                    G.add_edge(idCompany, id, type="PRODUCED", weight=1 )    
                 for genre in row['genres'].split("|"):
                     #idGenre = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'GENRE' and attributes.get('name') == genre)][0]
                     idGenre = genreDict[genre]
-                    G.add_edge(id, idGenre, type="IN_GENRE" )
+                    G.add_edge(id, idGenre, type="IN_GENRE", weight=1 )
                 for keyword in row['keywords'].split("|"):
                     #idKeyword = [idtemp for idtemp,attributes in tmpGraph if (attributes.get('labels') == 'KEYWORD' and attributes.get('name') == keyword)][0]
                     idKeyword = keywordDict[keyword]
-                    G.add_edge(id, idKeyword, type="HAS_KEYWORD" )
+                    G.add_edge(id, idKeyword, type="HAS_KEYWORD", weight=1 )
                 id+=1
                 #print(nx.info(G))
     if (verbose): 
         print("ADDED MOVIES AND RELATIONS IN " + to_ms(time.time() - startTimeMovies))
     
-    
+
+########## TESTING BEGINS HERE ################
+#### TEST GET ALL
+if (testGetAll):
+    startTime=time.time()
+    #startTime=time.time_ns()
+    nodes = G.nodes(data=True)
+    #edges = G.edges(data=True)
+    endTime=time.time()
+
+
+
+        
+#endTime=time.time_ns()
+#print(edges)    
 # LG is the graph loaded from the CSV.         
 if (doImportFromExportedCSV):
     LG = nx.DiGraph(name="Graph loaded from neo4j CSV")
@@ -300,19 +320,35 @@ if (doImportFromExportedCSV):
     if (verbose): 
         print("LOAD DONE")
 
-
 ############ Export/Import ##########
 if createByImport:
-    importFile='/home/pagai/graph-data/node_link_data/moviedb/node_link_data_export_'+str(limit)+'.json'
-    print("IMPORTING " + importFile)
-    start_time = time.time()
+    importFile='/tmp/node_link_data_export_moviedb_'+str(limit)+'.json'
+    if verbose:
+        print("IMPORTING " + importFile)
+    startTime = time.time()
     G = import_node_link_data_to_graph(importFile, verbose=verbose)
     if (verbose): 
         print("IMPORTED FILE: " + importFile)
         print(nx.info(G))
-
+    endTime=time.time()
 if doExport:
-    export_graph_to_node_link_data(G, '/tmp/node_link_data_export_'+str(limit)+'.json', verbose=verbose)
+    export_graph_to_node_link_data(G, '/tmp/node_link_data_export_moviedb_'+str(limit)+'.json', verbose=verbose)
+
+#### TEST SEARCH MOVIES FROM 2015 ##############
+if (testSearch):
+    entrycount=0
+    startTime=time.time()
+    #resultList = [movie for movie,attributes in G.nodes(data=True) if ((attributes.get('labels') == 'MOVIE') & (attributes.get('release_year') == '2015'))]
+    resultList = [movie for movie,attributes in G.nodes(data=True) if (attributes.get('labels') == 'PERSON')]
+    endTime=time.time()
+    if verbose:
+        for entry in resultList:
+            entrycount+=1
+        print("FOUND:",entrycount,"RESULTS")        
+    print(limit,G.number_of_nodes(),G.number_of_edges(),to_ms(endTime - startTime),sep=",")
+
+
+
 
 # MULTI EXPORT FILE
 if (doMultiExport):
@@ -348,27 +384,21 @@ if (doImportFromExportedCSV):
 
 #########################################################################
 
-if (verbose): 
+if (verbose and not createByImport): 
     print("######## INFO G:")
     print(nx.info(G))
     print("########### G ###############")
     print("########### A ###############")
-    print(len(sorted(actor_list_G)))
     print(len(sorted(unique_actors)))
     print("########## D ###############")
-    print(len(sorted(director_list_G)))
     print(len(sorted(unique_directors)))
     print("########## P ###############")
-    print(len(sorted(person_list_G)))
     print(len(sorted(unique_persons)))
     print("########## KW ###############")
-    print(len(sorted(keyword_list_G)))
     print(len(sorted(unique_keywords)))
     print("########## G ###############")
-    print(len(sorted(genre_list_G)))
     print(len(sorted(unique_genres)))
     print("########## C ###############")
-    print(len(sorted(company_list_G)))
     print(len(sorted(unique_companies)))
 
 
@@ -382,18 +412,19 @@ if (verbose):
         print("subLG: " + str(subLG.number_of_nodes()))
         print("subG:  " + str(subG.number_of_nodes()))
         print("LG: " + str(LG.number_of_nodes()))
-    print("G    : " + str(G.number_of_nodes()))
-    print("subG : " + str(subG.number_of_nodes()))
+        print("G    : " + str(G.number_of_nodes()))
+    
 
 ########## DELETE-test Clear ################
-numberOfNodes = G.number_of_nodes()
-numberOfEdges = G.number_of_edges()
-
-start_time_clear=time.time()
-G.clear()
-export_graph_to_node_link_data(G, importExportFileName, verbose=verbose)
-end_time_clear=time.time()
-print(numberOfNodes, numberOfEdges, to_ms(end_time_clear - start_time_clear), sep=",")
+if deleteTest:
+    numberOfNodes = G.number_of_nodes()
+    numberOfEdges = G.number_of_edges()
+    
+    start_time_clear=time.time()
+    G.clear()
+    export_graph_to_node_link_data(G, importExportFileName, verbose=verbose)
+    end_time_clear=time.time()
+    print(numberOfNodes, numberOfEdges, to_ms(end_time_clear - start_time_clear), sep=",")
 
 ########### ALGO TESTS ################
 if doAlgo:
@@ -454,3 +485,4 @@ if doAlgo:
 
 if (drawit):
     draw_graph(G)
+
