@@ -8,6 +8,7 @@ import json
 import os
 import gc
 from _tkinter import create
+from logging import _startTime
 
 # import own helper-modules
 sys.path.append(os.path.abspath(os.path.join(os.path.realpath(__file__),"../../networkx_modules")))
@@ -110,22 +111,28 @@ verbose=False
 doImportFromExportedCSV = False
 doExport=False
 doMultiExport=False
-doExport=True
-createByImport=True
+doExport=False
+createByImport=False
 
 
 limit=0
 seclimit=1
 importExportFileName = "/tmp/node_link_data_export_moviedb_" + str(limit) + ".json"
 
-doAlgo=False
+doAlgo=True
+doAlgoPageRankTest=False
+doAlgoShortestPath=True
+doDegreeCentrality=False
+doSimRank=False
+doHITS=False
+
 operatorFunction="eq"
 algoVerbose=False
 drawit=False
 
 deleteTest=False
 testGetAll=False
-testSearch=True
+testSearch=False
 
 #################################
 
@@ -414,12 +421,10 @@ if (verbose):
         print("LG: " + str(LG.number_of_nodes()))
         print("G    : " + str(G.number_of_nodes()))
     
-
 ########## DELETE-test Clear ################
 if deleteTest:
     numberOfNodes = G.number_of_nodes()
     numberOfEdges = G.number_of_edges()
-    
     start_time_clear=time.time()
     G.clear()
     export_graph_to_node_link_data(G, importExportFileName, verbose=verbose)
@@ -428,60 +433,72 @@ if deleteTest:
 
 ########### ALGO TESTS ################
 if doAlgo:
-
     #### SHORTEST PATH
-    #algo_shortest_path(G)
-    #algo_all_pairs_dijkstra(G,verbose=True,inputWeight='weight')
-    #algo_all_pairs_bellman_ford_path(G,verbose=True,inputWeight='weight')
+    if doAlgoShortestPath:
+        
+        startTime=time.time()
+        nodeList=[x for x,y in G.nodes(data=True) if (y.get('ACTOR') == True)]
+        subG = G.subgraph(nodeList)
+        algo_shortest_path(subG,verbose=False)
+        
+        #algo_all_pairs_dijkstra(G,verbose=False,inputWeight='weight')
+        #algo_all_pairs_bellman_ford_path(G,verbose=True,inputWeight='weight')
+        
+        #all_pairs_shortest_path(G)
+        
+        #algo_all_pairs_shortest_path(G,verbose=False,inputWeight='weight')
+        #draw_all_shortest_path_for_single_node(G,"1")
+        #all_shortest_path_for_single_node(G,"12")
+        
+        
+        #### SHORTESTPATH ASTAR
+        #algo_all_pairs_shortest_path_astar(G,verbose=verbose)
+        endTime=time.time()
+        print(limit,G.number_of_nodes(), G.number_of_edges(), to_ms(endTime - startTime), sep=",")
+        
+    #### PAGERANK    
+    if doAlgoPageRankTest:   
     
-    #all_pairs_shortest_path(G)
+        #actor_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('ACTOR') > 0]
+        #keyword_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'KEYWORD')]
+        #director_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('DIRECTOR') > 0]
+        person_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PERSON')]
+        #company_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PRODUCTION_COMPANY')]
+        #genre_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'GENRE')]
+        subG = G.subgraph(person_list_G)
+        if not verbose: 
+            print(nx.info(subG))
+            #print(nx.info(G))
+        #weightInputForAlgos="weight"
+        weightInputForAlgos=None
+        print("==============================")
+        start_time_algo = time.time()
+        #algo_pagerank(subG, "default",  weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
+        # NUMPY IS OBSOLETE
+        #algo_pagerank(G, "numpy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=10)
+        algo_pagerank(subG, "scipy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
+        print("==============================")
+        print("EXECUTION TOOK: " + to_ms(time.time() - start_time))
     
-    #algo_all_pairs_shortest_path(G,verbose=False,inputWeight='weight')
-    #draw_all_shortest_path_for_single_node(G,"1")
-    #all_shortest_path_for_single_node(G,"12")
-    
-    
-    #### SHORTESTPATH ASTAR
-    #algo_all_pairs_shortest_path_astar(G,verbose=verbose)
-    
-    #### PAGERANK
-    #actor_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('ACTOR') > 0]
-    #keyword_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'KEYWORD')]
-    #director_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('DIRECTOR') > 0]
-    person_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PERSON')]
-    #company_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PRODUCTION_COMPANY')]
-    #genre_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'GENRE')]
-    subG = G.subgraph(person_list_G)
-    if not verbose: 
-        print(nx.info(subG))
-        #print(nx.info(G))
-    #weightInputForAlgos="weight"
-    weightInputForAlgos=None
-    print("==============================")
-    start_time_algo = time.time()
-    #algo_pagerank(subG, "default",  weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
-    # NUMPY IS OBSOLETE
-    #algo_pagerank(G, "numpy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=10)
-    algo_pagerank(subG, "scipy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
-    print("==============================")
-    print("EXECUTION TOOK: " + to_ms(time.time() - start_time))
     #### SIMRANK
-    #algo_simRank(G,verbose=True,max_iterations=1)
-    
+    if doSimRank:
+        algo_simRank(G,verbose=True,max_iterations=1)
+
     #### DEGREE CENTRALITY
-    # Degree Centrality - own
-    #verbose=True
-    #peng = sorted(G.degree, key=lambda x: x[1], reverse=True)
-    #if (verbose):
-    #    for bums in peng:
-    #        print(bums)
-    
-    # Degree Centrality - native
-    #algo_degree_centrality(G, verbose=False)
+    if doDegreeCentrality:
+        # Degree Centrality - own
+        verbose=True
+        #peng = sorted(G.degree, key=lambda x: x[1], reverse=True)
+        #if (verbose):
+        #    for bums in peng:
+        #        print(bums)
+        
+        # Degree Centrality - native
+        #algo_degree_centrality(G, verbose=False)
     
     #### HITS
-    
-    #get_hits(G)
+    if doHITS:
+        get_hits(G)
 
 if (drawit):
     draw_graph(G)
