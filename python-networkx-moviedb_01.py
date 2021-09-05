@@ -120,9 +120,9 @@ seclimit=1
 importExportFileName = "/tmp/node_link_data_export_moviedb_" + str(limit) + ".json"
 
 doAlgo=True
-doAlgoPageRankTest=False
-doAlgoShortestPath=True
+doAlgoShortestPath=False
 doDegreeCentrality=False
+doPageRank=True
 doSimRank=False
 doHITS=False
 
@@ -457,28 +457,29 @@ if doAlgo:
         print(limit,G.number_of_nodes(), G.number_of_edges(), to_ms(endTime - startTime), sep=",")
         
     #### PAGERANK    
-    if doAlgoPageRankTest:   
-    
+    if doPageRank:   
+        start_time = time.time()
         #actor_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('ACTOR') > 0]
         #keyword_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'KEYWORD')]
         #director_list_G=[x for x,y in G.nodes(data=True) if (y.get('roles',"None")).count('DIRECTOR') > 0]
-        person_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PERSON')]
+        person_list_G=[x for x,y in G.nodes(data=True) if (y.get('ACTOR') == True)]
         #company_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'PRODUCTION_COMPANY')]
         #genre_list_G=[x for x,y in G.nodes(data=True) if (y.get('labels') == 'GENRE')]
         subG = G.subgraph(person_list_G)
-        if not verbose: 
+        if verbose: 
             print(nx.info(subG))
             #print(nx.info(G))
         #weightInputForAlgos="weight"
         weightInputForAlgos=None
-        print("==============================")
-        start_time_algo = time.time()
-        #algo_pagerank(subG, "default",  weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
-        # NUMPY IS OBSOLETE
-        #algo_pagerank(G, "numpy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=10)
-        algo_pagerank(subG, "scipy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
-        print("==============================")
-        print("EXECUTION TOOK: " + to_ms(time.time() - start_time))
+        if (algoVerbose):
+            print("==============================")
+        algo_pagerank(subG, "default",  weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
+        ###### NUMPY IS OBSOLETE
+        #### DO NOT USE #####algo_pagerank(subG, "numpy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
+        #algo_pagerank(subG, "scipy", weightInput=weightInputForAlgos, verbose=algoVerbose, maxLineOutput=0)
+        if (algoVerbose):
+            print("==============================")
+        print(limit,subG.number_of_nodes(),subG.number_of_edges(),to_ms(time.time() - start_time),sep=",")
     
     #### SIMRANK
     if doSimRank:
